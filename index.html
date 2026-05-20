@@ -1,0 +1,1821 @@
+#anand raj
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hands-on GCP CLI Tutorial</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  :root {
+    --bg: #0f1419;
+    --bg-elevated: #1a2027;
+    --bg-code: #0a0d11;
+    --border: #2a3441;
+    --border-strong: #3d4a5c;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --text-muted: #6e7681;
+    --accent: #4285f4;
+    --accent-dim: #1a73e8;
+    --accent-glow: rgba(66, 133, 244, 0.15);
+    --success: #34a853;
+    --warning: #fbbc04;
+    --danger: #ea4335;
+    --purple: #a78bfa;
+    --teal: #14b8a6;
+    --code-keyword: #c792ea;
+    --code-string: #c3e88d;
+    --code-comment: #546e7a;
+    --code-flag: #ffcb6b;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  
+  /* === Layout === */
+  .app {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 100vh;
+  }
+  
+  /* === Sidebar === */
+  .sidebar {
+    background: var(--bg-elevated);
+    border-right: 1px solid var(--border);
+    padding: 28px 20px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  
+  .sidebar-header {
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .sidebar-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .sidebar-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  
+  .progress-bar {
+    margin-top: 12px;
+    height: 4px;
+    background: var(--bg-code);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--teal));
+    width: 0%;
+    transition: width 0.4s ease;
+  }
+  
+  .progress-text {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+  
+  .nav-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-dim);
+    transition: all 0.15s ease;
+    user-select: none;
+  }
+  
+  .nav-item:hover {
+    background: var(--bg-code);
+    color: var(--text);
+  }
+  
+  .nav-item.active {
+    background: var(--accent-glow);
+    color: var(--accent);
+    font-weight: 500;
+  }
+  
+  .nav-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    background: var(--bg-code);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  
+  .nav-item.active .nav-icon {
+    background: var(--accent);
+    color: white;
+  }
+  
+  .nav-item.completed .nav-icon::after {
+    content: '✓';
+    color: var(--success);
+    font-size: 13px;
+  }
+  
+  .nav-item.completed .nav-icon {
+    background: rgba(52, 168, 83, 0.15);
+  }
+  
+  .nav-item.completed .nav-icon span { display: none; }
+  
+  /* === Main content === */
+  .main {
+    padding: 40px 48px;
+    max-width: 920px;
+    width: 100%;
+  }
+  
+  .module {
+    display: none;
+  }
+  
+  .module.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .module-header {
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .module-eyebrow {
+    font-size: 12px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  
+  .module-title {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--text) 0%, var(--text-dim) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .module-time {
+    font-size: 13px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 32px 0 14px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  h2::before {
+    content: '';
+    width: 3px;
+    height: 18px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+  
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 24px 0 10px;
+    color: var(--text);
+  }
+  
+  p {
+    color: var(--text-dim);
+    margin-bottom: 14px;
+    font-size: 15px;
+  }
+  
+  strong { color: var(--text); }
+  
+  code:not(pre code) {
+    background: var(--bg-code);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-size: 13px;
+    color: var(--code-flag);
+    border: 1px solid var(--border);
+  }
+  
+  /* === Real-life callout === */
+  .real-life {
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.08), rgba(20, 184, 166, 0.04));
+    border: 1px solid rgba(167, 139, 250, 0.25);
+    border-left: 3px solid var(--purple);
+    padding: 16px 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+  }
+  
+  .real-life-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--purple);
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .real-life p {
+    color: var(--text);
+    font-size: 14px;
+    margin-bottom: 0;
+  }
+  
+  /* === Code blocks === */
+  .code-block {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 14px 0 20px;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .code-lang {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+  
+  .copy-btn {
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--text-dim);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: inherit;
+  }
+  
+  .copy-btn:hover {
+    background: var(--accent-glow);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  
+  .copy-btn.copied {
+    background: var(--success);
+    color: white;
+    border-color: var(--success);
+  }
+  
+  pre {
+    padding: 16px;
+    overflow-x: auto;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+  
+  .tok-cmd { color: var(--accent); font-weight: 500; }
+  .tok-flag { color: var(--code-flag); }
+  .tok-str { color: var(--code-string); }
+  .tok-comment { color: var(--code-comment); font-style: italic; }
+  .tok-kw { color: var(--code-keyword); }
+  
+  /* === Try it yourself === */
+  .exercise {
+    background: rgba(52, 168, 83, 0.06);
+    border: 1px solid rgba(52, 168, 83, 0.25);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin: 24px 0;
+  }
+  
+  .exercise-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    font-weight: 600;
+    color: var(--success);
+    font-size: 14px;
+  }
+  
+  .exercise-icon {
+    width: 20px;
+    height: 20px;
+    background: rgba(52, 168, 83, 0.2);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+  
+  .exercise ol, .exercise ul {
+    margin-left: 20px;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+  
+  .exercise li { margin-bottom: 6px; }
+  
+  /* === Warning callout === */
+  .warning {
+    background: rgba(251, 188, 4, 0.06);
+    border: 1px solid rgba(251, 188, 4, 0.3);
+    border-left: 3px solid var(--warning);
+    padding: 14px 18px;
+    border-radius: 6px;
+    margin: 16px 0;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  
+  .warning strong {
+    color: var(--warning);
+  }
+  
+  /* === Footer nav === */
+  .module-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+  
+  .nav-btn {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s ease;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    max-width: 240px;
+  }
+  
+  .nav-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+  }
+  
+  .nav-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  
+  .nav-btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    justify-content: flex-end;
+  }
+  
+  .nav-btn.primary:hover:not(:disabled) {
+    background: var(--accent-dim);
+  }
+  
+  .nav-btn.next { margin-left: auto; }
+  
+  .complete-btn {
+    background: rgba(52, 168, 83, 0.12);
+    border: 1px solid var(--success);
+    color: var(--success);
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s ease;
+    font-family: inherit;
+    font-weight: 500;
+  }
+  
+  .complete-btn:hover {
+    background: var(--success);
+    color: white;
+  }
+  
+  .complete-btn.done {
+    background: var(--success);
+    color: white;
+  }
+  
+  /* === Welcome screen === */
+  .welcome {
+    text-align: center;
+    padding: 40px 20px;
+  }
+  
+  .welcome-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+  
+  .welcome h1 {
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+  
+  .welcome-sub {
+    color: var(--text-dim);
+    font-size: 17px;
+    max-width: 560px;
+    margin: 0 auto 32px;
+  }
+  
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin: 32px 0;
+  }
+  
+  .feature {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    padding: 20px;
+    border-radius: 10px;
+    text-align: left;
+    transition: all 0.2s ease;
+  }
+  
+  .feature:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  
+  .feature-icon {
+    width: 36px;
+    height: 36px;
+    background: var(--accent-glow);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    margin-bottom: 12px;
+  }
+  
+  .feature h3 {
+    font-size: 15px;
+    margin: 0 0 6px;
+  }
+  
+  .feature p {
+    font-size: 13px;
+    margin: 0;
+  }
+  
+  /* === Cmd anatomy === */
+  .cmd-anatomy {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    background: var(--bg-code);
+    padding: 24px;
+    border-radius: 10px;
+    margin: 20px 0;
+    border: 1px solid var(--border);
+    font-family: 'SF Mono', monospace;
+    font-size: 18px;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .anatomy-part {
+    padding: 6px 14px;
+    border-radius: 6px;
+    position: relative;
+    cursor: help;
+    transition: transform 0.15s ease;
+  }
+  
+  .anatomy-part:hover {
+    transform: translateY(-2px);
+  }
+  
+  .anatomy-part::after {
+    content: attr(data-label);
+    position: absolute;
+    bottom: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: -apple-system, sans-serif;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  
+  .anatomy-part.cmd { background: rgba(66, 133, 244, 0.2); color: var(--accent); }
+  .anatomy-part.group { background: rgba(167, 139, 250, 0.2); color: var(--purple); }
+  .anatomy-part.verb { background: rgba(20, 184, 166, 0.2); color: var(--teal); }
+  .anatomy-part.name { background: rgba(251, 188, 4, 0.2); color: var(--warning); }
+  .anatomy-part.flag { background: rgba(255, 255, 255, 0.05); color: var(--text-dim); }
+  
+  /* === Quiz / mini-interactive === */
+  .quick-check {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+  
+  .quick-check-q {
+    font-weight: 600;
+    margin-bottom: 14px;
+    color: var(--text);
+  }
+  
+  .quick-check-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .quick-option {
+    padding: 10px 14px;
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-dim);
+    transition: all 0.15s ease;
+    text-align: left;
+    font-family: inherit;
+  }
+  
+  .quick-option:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+  
+  .quick-option.correct {
+    background: rgba(52, 168, 83, 0.15);
+    border-color: var(--success);
+    color: var(--success);
+  }
+  
+  .quick-option.wrong {
+    background: rgba(234, 67, 53, 0.1);
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+  
+  .quick-option:disabled {
+    cursor: default;
+  }
+  
+  .quick-explain {
+    margin-top: 14px;
+    padding: 12px;
+    background: var(--bg-code);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-dim);
+    display: none;
+  }
+  
+  .quick-explain.show { display: block; }
+  
+  /* === Tabs === */
+  .tabs {
+    display: flex;
+    gap: 2px;
+    border-bottom: 1px solid var(--border);
+    margin: 20px 0 0;
+  }
+  
+  .tab {
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s ease;
+  }
+  
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  
+  /* === Mobile === */
+  @media (max-width: 768px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar {
+      position: relative;
+      height: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+    .main { padding: 24px 20px; }
+    .module-title { font-size: 24px; }
+  }
+  
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">☁️ gcloud Tutorial</div>
+      <div class="sidebar-subtitle">Hands-on GCP CLI</div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-text" id="progressText">0 of 9 complete</div>
+    </div>
+    <ul class="nav-list" id="navList"></ul>
+  </aside>
+  
+  <main class="main" id="mainContent">
+    <!-- Modules inserted via JS -->
+  </main>
+</div>
+
+<script>
+const modules = [
+  {
+    id: 'welcome',
+    title: 'Welcome',
+    icon: '👋',
+    time: '2 min',
+    content: `
+      <div class="welcome">
+        <div class="welcome-icon">☁️</div>
+        <h1>Master the GCP CLI</h1>
+        <p class="welcome-sub">A hands-on tutorial built around real cloud projects — Cloud Functions, BigQuery, Scheduler, Secrets, IAM. By the end, you'll deploy and manage GCP resources entirely from the terminal.</p>
+        
+        <div class="feature-grid">
+          <div class="feature">
+            <div class="feature-icon">🎯</div>
+            <h3>Real examples</h3>
+            <p>Every command tied back to a working project: FX rates function, BQ null monitor, daily schedules.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">📋</div>
+            <h3>Copy-paste ready</h3>
+            <p>Every code block has a copy button. Run it in your terminal as you go.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">✅</div>
+            <h3>Track progress</h3>
+            <p>Mark modules complete as you finish. Pick up where you left off.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">🛠️</div>
+            <h3>Capstone project</h3>
+            <p>Build a small pipeline from scratch using only the CLI by the end.</p>
+          </div>
+        </div>
+        
+        <h2 style="justify-content:center;">Before you start</h2>
+        <p style="text-align:left;">Install the SDK if you haven't already:</p>
+        
+        <div class="tabs">
+          <button class="tab active" data-tab="mac">macOS</button>
+          <button class="tab" data-tab="win">Windows</button>
+          <button class="tab" data-tab="linux">Linux</button>
+        </div>
+        <div class="tab-panel active" data-panel="mac">
+          ${codeBlock(`brew install --cask google-cloud-sdk
+gcloud init`)}
+        </div>
+        <div class="tab-panel" data-panel="win">
+          <p style="text-align:left;">Download installer from <code>cloud.google.com/sdk/docs/install</code></p>
+          ${codeBlock(`# After install, in PowerShell:
+gcloud init`)}
+        </div>
+        <div class="tab-panel" data-panel="linux">
+          ${codeBlock(`curl https://sdk.cloud.google.com | bash
+exec -l $SHELL
+gcloud init`)}
+        </div>
+        
+        <p style="margin-top:20px;"><code>gcloud init</code> opens a browser for login and asks you to pick a project. Once you're past that, you're set — start with Module 1.</p>
+      </div>
+    `
+  },
+  
+  {
+    id: 'orient',
+    title: 'Orient Yourself',
+    icon: '1',
+    time: '10 min',
+    content: `
+      <div class="module-header">
+        <div class="module-eyebrow">Module 1</div>
+        <h1 class="module-title">Orient Yourself</h1>
+        <div class="module-time">⏱️ 10 minutes</div>
+      </div>
+      
+      <p>Before doing anything, you need to know <em>who you are</em>, <em>where you are</em>, and <em>what tools you have</em>. Three commands handle that.</p>
+      
+      <h2>The three orientation commands</h2>
+      ${codeBlock(`gcloud config list          # who am I, what project, what region
+gcloud auth list            # active accounts
+gcloud projects list        # all projects you have access to`)}
+      
+      <div class="real-life">
+        <div class="real-life-label">🎯 Real Life</div>
+        <p>Before deploying the <code>currency-master</code> function, you set <code>fintech-469706</code> as the project and <code>asia-south1</code> as the region. Without those defaults, every gcloud command would need <code>--project</code> and <code>--region</code> flags. Set them once, save them forever.</p>
+      </div>
+      
+      <h2>Switching context</h2>
+      ${codeBlock(`gcloud config set project fintech-469706
+gcloud config set compute/region asia-south1
+gcloud config set compute/zone asia-south1-a`)}
+      
+      <h2>The structure of every gcloud command</h2>
+      <p>Once you see this pattern, every command becomes guessable:</p>
+      
+      <div class="cmd-anatomy">
+        <span class="anatomy-part cmd" data-label="cli">gcloud</span>
+        <span class="anatomy-part group" data-label="group">functions</span>
+        <span class="anatomy-part verb" data-label="verb">deploy</span>
+        <span class="anatomy-part name" data-label="name">my-fn</span>
+        <span class="anatomy-part flag" data-label="flags">--region=asia-south1</span>
+      </div>
+      
+      <p style="margin-top:36px;">More examples following the same pattern:</p>
+      ${codeBlock(`gcloud iam service-accounts create bq-null-monitor
+gcloud secrets versions add gmail-app-password --data-file=-
+gcloud scheduler jobs run fx-rates-daily --location=asia-south1`)}
+      
+      <h2>Your best friend: <code>--help</code></h2>
+      <p>When you don't know what to do, ask:</p>
+      ${codeBlock(`gcloud functions --help          # what verbs/subgroups exist?
+gcloud functions deploy --help   # what flags does this verb take?
+gcloud --help                    # all top-level groups`)}
+      
+      <div class="quick-check" data-quiz>
+        <div class="quick-check-q">In <code>gcloud iam service-accounts create bq-monitor</code>, which part is the "verb"?</div>
+        <div class="quick-check-options">
+          <button class="quick-option" data-correct="false">iam</button>
+          <button class="quick-option" data-correct="false">service-accounts</button>
+          <button class="quick-option" data-correct="true">create</button>
+          <button class="quick-option" data-correct="false">bq-monitor</button>
+        </div>
+        <div class="quick-explain">Correct! <code>iam</code> is the group, <code>service-accounts</code> is a subgroup, <code>create</code> is the verb (action), and <code>bq-monitor</code> is the name. Verbs are always the action.</div>
+      </div>
+      
+      <div class="exercise">
+        <div class="exercise-header"><span class="exercise-icon">▶</span> Try it yourself</div>
+        <ol>
+          <li>Run <code>gcloud config list</code> — note your current project</li>
+          <li>Run <code>gcloud projects list</code> — see all projects you have access to</li>
+          <li>Switch to a project: <code>gcloud config set project YOUR_PROJECT</code></li>
+          <li>Set your default region: <code>gcloud config set compute/region asia-south1</code></li>
+          <li>Run <code>gcloud config list</code> again — confirm the changes</li>
+        </ol>
+      </div>
+    `
+  },
+  
+  {
+    id: 'storage',
+    title: 'Cloud Storage',
+    icon: '2',
+    time: '15 min',
+    content: `
+      <div class="module-header">
+        <div class="module-eyebrow">Module 2</div>
+        <h1 class="module-title">Cloud Storage</h1>
+        <div class="module-time">⏱️ 15 minutes</div>
+      </div>
+      
+      <p>Cloud Storage is the easiest service to play with — buckets are cheap and creating/deleting them is fast. The mental model is "S3, but with a cleaner CLI."</p>
+      
+      <h2>Buckets are containers; objects are files</h2>
+      <p>A <strong>bucket</strong> holds <strong>objects</strong> (files). Bucket names must be globally unique across all of GCP, so add a suffix to avoid clashes.</p>
+      
+      ${codeBlock(`# Create a bucket
+gcloud storage buckets create gs://Anand_raj-tutorial-2026 \\
+  --location=asia-south1
+
+# Upload a file
+echo "hello gcloud" > test.txt
+gcloud storage cp test.txt gs://Anand_raj-tutorial-2026/
+
+# List contents
+gcloud storage ls gs://Anand_raj-tutorial-2026/
+
+# Read without downloading
+gcloud storage cat gs://Anand_raj-tutorial-2026/test.txt
+
+# Download
+gcloud storage cp gs://Anand_raj-tutorial-2026/test.txt downloaded.txt
+
+# Sync entire folder (like rsync)
+gcloud storage rsync ./localdir gs://Anand_raj-tutorial-2026/remotedir/`)}
+      
+      <div class="real-life">
+        <div class="real-life-label">🎯 Real Life</div>
+        <p>The SEA Marketing GCS upload alert you triaged earlier? That alert exists because cron jobs upload CSVs to a bucket like <code>gs://sea-marketing-uploads/2026-05-12/</code>. Listing missing paths is just <code>gcloud storage ls</code> with date filtering. Knowing this CLI is what unblocks investigating "why is the path missing?"</p>
+      </div>
+      
+      <h2>Cleaning up</h2>
+      ${codeBlock(`# Delete a file
+gcloud storage rm gs://Anand_raj-tutorial-2026/test.txt
+
+# Delete a bucket (must be empty)
+gcloud storage buckets delete gs://Anand_raj-tutorial-2026
+
+# Force delete (bucket + everything in it)
+gcloud storage rm --recursive gs://Anand_raj-tutorial-2026`)}
+      
+      <div class="warning">
+        <strong>⚠️ Careful:</strong> <code>--recursive</code> deletes everything without confirmation. There's no recycle bin. Get in the habit of double-checking the bucket name before running it.
+      </div>
+      
+      <h2>Useful flags to remember</h2>
+      ${codeBlock(`# Make a file public
+gcloud storage objects update gs://my-bucket/file.txt \\
+  --add-acl-grant=entity=AllUsers,role=READER
+
+# Copy with metadata
+gcloud storage cp file.csv gs://my-bucket/ \\
+  --content-type=text/csv \\
+  --cache-control=no-cache
+
+# List with sizes
+gcloud storage ls --long gs://my-bucket/`)}
+      
+      <div class="exercise">
+        <div class="exercise-header"><span class="exercise-icon">▶</span> Try it yourself</div>
+        <ol>
+          <li>Create a bucket with your name as a suffix</li>
+          <li>Upload any text file</li>
+          <li>List the bucket contents</li>
+          <li>Read the file contents without downloading (<code>cat</code>)</li>
+          <li>Delete the file, then the bucket</li>
+        </ol>
+      </div>
+    `
+  },
+  
+  {
+    id: 'iam',
+    title: 'IAM & Service Accounts',
+    icon: '3',
+    time: '20 min',
+    content: `
+      <div class="module-header">
+        <div class="module-eyebrow">Module 3</div>
+        <h1 class="module-title">IAM & Service Accounts</h1>
+        <div class="module-time">⏱️ 20 minutes</div>
+      </div>
+      
+      <p>You've been creating service accounts blindly during deployments. Now let's understand them — this is the single most important GCP concept.</p>
+      
+      <h2>The mental model</h2>
+      <p>Three things, working together:</p>
+      
+      <div class="feature-grid">
+        <div class="feature">
+          <div class="feature-icon">🤖</div>
+          <h3>Principals</h3>
+          <p>Who is doing something. Either a human user or a service account (a "robot user").</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🎒</div>
+          <h3>Roles</h3>
+          <p>Bags of permissions. <code>roles/bigquery.dataViewer</code> lets you read BQ tables.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">📦</div>
+          <h3>Resources</h3>
+          <p>What is being acted on. A project, a bucket, a secret, a table.</p>
+        </div>
+      </div>
+      
+      <p>A <strong>binding</strong> connects them: "this principal has this role on this resource."</p>
+      
+      <h2>Service account lifecycle</h2>
+      ${codeBlock(`# Create
+gcloud iam service-accounts create tutorial-sa \\
+  --display-name="Tutorial SA"
+
+# List all service accounts in the project
+gcloud iam service-accounts list
+
+# Inspect a specific one
+gcloud iam service-accounts describe \\
+  tutorial-sa@fintech-469706.iam.gserviceaccount.com
+
+# Delete
+gcloud iam service-accounts delete \\
+  tutorial-sa@fintech-469706.iam.gserviceaccount.com`)}
+      
+      <h2>Granting roles</h2>
+      ${codeBlock(`# Grant a role on the project
+gcloud projects add-iam-policy-binding fintech-469706 \\
+  --member="serviceAccount:tutorial-sa@fintech-469706.iam.gserviceaccount.com" \\
+  --role="roles/storage.objectViewer"
+
+# See all bindings for the project
+gcloud projects get-iam-policy fintech-469706
+
+# Remove the role
+gcloud projects remove-iam-policy-binding fintech-469706 \\
+  --member="serviceAccount:tutorial-sa@fintech-469706.iam.gserviceaccount.com" \\
+  --role="roles/storage.objectViewer"`)}
+      
+      <div class="real-life">
+        <div class="real-life-label">🎯 Real Life</div>
+        <p>The BQ null monitor function needed <code>roles/bigquery.dataViewer</code> + <code>roles/bigquery.jobUser</code> + <code>roles/secretmanager.secretAccessor</code>. Each role grants the minimum needed. This is <strong>principle of least privilege</strong> — never grant <code>roles/owner</code> when a narrower role works.</p>
+      </div>
+      
+      <h2>Finding the right role</h2>
+      ${codeBlock(`# Search for roles by keyword
+gcloud iam roles list --filter="name:bigquery"
+
+# What permissions does a role have?
+gcloud iam roles describe roles/bigquery.dataViewer
+
+# Test what a principal can do
+gcloud iam list-testable-permissions \\
+  //cloudresourcemanager.googleapis.com/projects/fintech-469706`)}
+      
+      <h2>Resource-level bindings</h2>
+      <p>Sometimes you want to grant access on a specific resource, not the whole project. Examples:</p>
+      
+      ${codeBlock(`# Grant access to a specific secret only
+gcloud secrets add-iam-policy-binding gmail-app-password \\
+  --member="serviceAccount:bq-monitor@fintech-469706.iam.gserviceaccount.com" \\
+  --role="roles/secretmanager.secretAccessor"
+
+# Grant access to a specific bucket only
+gcloud storage buckets add-iam-policy-binding gs://my-bucket \\
+  --member="serviceAccount:reader@fintech-469706.iam.gserviceaccount.com" \\
+  --role="roles/storage.objectViewer"`)}
+      
+      <div class="quick-check" data-quiz>
+        <div class="quick-check-q">Your Cloud Function needs to read from BigQuery and send notifications via Secret Manager. What's the minimum set of roles?</div>
+        <div class="quick-check-options">
+          <button class="quick-option" data-correct="false">roles/owner</button>
+          <button class="quick-option" data-correct="true">roles/bigquery.dataViewer + roles/bigquery.jobUser + roles/secretmanager.secretAccessor</button>
+          <button class="quick-option" data-correct="false">roles/editor</button>
+        </div>
+        <div class="quick-explain">Always prefer specific roles over broad ones. <code>roles/owner</code> and <code>roles/editor</code> grant far more than needed and create a security risk.</div>
+      </div>
+      
+      <div class="exercise">
+        <div class="exercise-header"><span class="exercise-icon">▶</span> Try it yourself</div>
+        <ol>
+          <li>Create a service account named <code>tutorial-sa</code></li>
+          <li>Grant it <code>roles/storage.objectViewer</code> on your project</li>
+          <li>Run <code>gcloud projects get-iam-policy YOUR_PROJECT</code> and find your binding</li>
+          <li>Remove the role binding</li>
+          <li>Delete the service account</li>
+        </ol>
+      </div>
+    `
+  },
+  
+  {
+    id: 'secrets',
+    title: 'Secret Manager',
+    icon: '4',
+    time: '10 min',
+    content: `
+      <div class="module-header">
+        <div class="module-eyebrow">Module 4</div>
+        <h1 class="module-title">Secret Manager</h1>
+        <div class="module-time">⏱️ 10 minutes</div>
+      </div>
+      
+      <p>You used this for the Gmail app password. Let's solidify the pattern — it's the right place for any credential, API key, or sensitive config.</p>
+      
+      <h2>The full lifecycle</h2>
+      ${codeBlock(`# Create a secret (the container)
+gcloud secrets create tutorial-secret \\
+  --replication-policy=automatic
+
+# Add a version (the actual value)
+echo -n "supersecret123" | gcloud secrets versions add tutorial-secret \\
+  --data-file=-
+
+# Read the latest version
+gcloud secrets versions access latest --secret=tutorial-secret
+
+# List all versions
+gcloud secrets versions list tutorial-secret
+
+# Read a specific version
+gcloud secrets versions access 1 --secret=tutorial-secret
+
+# Rotate (add new version, old one still available)
+echo -n "newsecret456" | gcloud secrets versions add tutorial-secret \\
+  --data-file=-
+
+# Disable an old version
+gcloud secrets versions disable 1 --secret=tutorial-secret
+
+# Cleanup
+gcloud secrets delete tutorial-secret`)}
+      
+      <div class="warning">
+        <strong>The <code>-n</code> matters.</strong> <code>echo -n "value"</code> doesn't add a trailing newline. Without <code>-n</code>, your secret would include an invisible <code>\\n</code> at the end, and logins would mysteriously fail. This bit a lot of people once.
+      </div>
+      
+      <div class="real-life">
+        <div class="real-life-label">🎯 Real Life</div>
+        <p>When the Gmail app password expires (Google rotates them every ~6 months), you don't redeploy the function. You just add a new version: <code>echo -n "newpass" | gcloud secrets versions add gmail-app-password --data-file=-</code>. The function reads <code>versions/latest</code> on each run, so the next invocation picks it up automatically.</p>
+      </div>
+      
+      <h2>Granting access</h2>
+      <p>Secrets are useless until someone (a service account, usually) can read them:</p>
+      
+      ${codeBlock(`gcloud secrets add-iam-policy-binding tutorial-secret \\
+  --member="serviceAccount:my-fn@fintech-469706.iam.gserviceaccount.com" \\
+  --role="roles/secretmanager.secretAccessor"`)}
+      
+      <h2>Reading a secret from Python (refresher)</h2>
+      ${codeBlock(`from google.cloud import secretmanager
+
+sm = secretmanager.SecretManagerServiceClient()
+secret_path = "projects/fintech-469706/secrets/gmail-app-password/versions/latest"
+password = sm.access_secret_version(name=secret_path).payload.data.decode().strip()`, 'python')}
+      
+      <div class="exercise">
+        <div class="exercise-header"><span class="exercise-icon">▶</span> Try it yourself</div>
+        <ol>
+          <li>Create a secret called <code>tutorial-secret</code></li>
+          <li>Add a value: <code>"hello"</code></li>
+          <li>Read it back with <code>versions access latest</code></li>
+          <li>Add a second version: <code>"world"</code></li>
+          <li>Read version 1 specifically — confirm it's still "hello"</li>
+          <li>Delete the secret</li>
+        </ol>
+      </div>
+    `
+  },
+  
+  {
+    id: 'bigquery',
+    title: 'BigQuery',
+    icon: '5',
+    time: '20 min',
+    content: `
+      <div class="module-header">
+        <div class="module-eyebrow">Module 5</div>
+        <h1 class="module-title">BigQuery</h1>
+        <div class="module-time">⏱️ 20 minutes</div>
+      </div>
+      
+      <p>You query BigQuery from Python in your Cloud Functions. The CLI lets you do the same things faster for ad-hoc work. The tool here is <code>bq</code> (not <code>gcloud</code>) — separate binary, same auth.</p>
+      
+      <h2>Quick queries</h2>
+      ${codeBlock(`# Run a one-off query
+bq query --use_legacy_sql=false \\
+  'SELECT name, gender, count
+   FROM \\\`bigquery-public-data.usa_names.usa_1910_2013\\\`
+   LIMIT 5'
+
+# Save output to JSON
+bq query --use_legacy_sql=false --format=json \\
+  'SELECT * FROM \\\`my-project.dataset.table\\\` LIMIT 10' \\
+  > results.json`)}
+      
+      <h2>Datasets and tables</h2>
+      ${codeBlock(`# List datasets
+bq ls
+
+# List tables in a dataset
+bq ls fintech-469706:my_dataset
+
+# Create a dataset
+bq mk --dataset --location=asia-south1 fintech-469706:tutorial
+
+# Inspect a table
+bq show fintech-469706:tutorial.people
+
+# Show schema only
+bq show --schema --format=prettyjson fintech-469706:tutorial.people
+
+# Delete dataset (with all tables)
+bq rm -r -f fintech-469706:tutorial`)}
+      
+      <h2>Loading data</h2>
+      ${codeBlock(`# Create a CSV
+cat > people.csv <<EOF
+name,age
+alice,30
+bob,25
+EOF
+
+# Auto-detect schema and load
+bq load --source_format=CSV --autodetect \\
+  fintech-469706:tutorial.people people.csv
+
+# Load from GCS
+bq load --source_format=CSV --autodetect \\
+  fintech-469706:tutorial.sales \\
+  gs://my-bucket/sales/*.csv
+
+# Append vs overwrite
+bq load --source_format=CSV --replace ...   # overwrite
+bq load --source_format=CSV --noreplace ...  # append (default)`)}
+      
+      <div class="real-life">
+        <div class="real-life-label">🎯 Real Life</div>
+        <p>Your null-monitor function runs <code>SELECT COUNTIF(col IS NULL), COUNT(*)</code>. You can test that exact query in the CLI before deploying — saves 5 minutes of redeploy cycles when debugging.</p>
+        <p style="margin-top:8px;"><code>bq query --use_legacy_sql=false 'SELECT COUNTIF(your_col IS NULL), COUNT(*) FROM \`project.dataset.table\`'</code></p>
+      </div>
+      
+      <h2>Useful flags</h2>
+      ${codeBlock(`# Dry run — see how much data the query will scan
+bq query --use_legacy_sql=false --dry_run \\
+  'SELECT * FROM \\\`my.huge.table\\\`'
+
+# Limit cost — fail if query would scan > X bytes
+bq query --use_legacy_sql=false --maximum_bytes_billed=1000000000 \\
+  'SELECT * FROM \\\`my.table\\\`'
+
+# Run as a named job for tracking
+bq query --use_legacy_sql=false --job_id=my-daily-summary \\
+  'SELECT ...'`)}
+      
+      <div class="exercise">
+        <div class="exercise-header"><span class="exercise-icon">▶</span> Try it yourself</div>
+        <ol>
+          <li>Create a dataset called <code>tutorial</code></li>
+          <li>Make a CSV with 2 columns, 3 rows</li>
+          <li>Load it into a table called <code>tutorial.test</code></li>
+          <li>Run a query against the table</li>
+          <li>Try <code>--dry_run</code> on the same query and note the bytes scanned</li>
+          <li>Clean up: <code>bq rm -r -f YOUR_PROJECT:tutorial</code></li>
+        </ol>
+      </div>
+    `
+  },
+  
+  {
+    id: 'functions',
+    title: 'Cloud Functions',
+    icon: '6',
+    time: '15 min',
+    content: `
+      <div class="module-header">
+        <div class="module-eyebrow">Module 6</div>
+        <h1 class="module-title">Cloud Functions</h1>
+        <div class="module-time">⏱️ 15 minutes</div>
+      </div>
+      
+      <p>You've already deployed two functions — <code>currency-master</code> (FX rates) and <code>bq-null-monitor</code>. Now let's cover the everyday management commands you'll actually use after deployment.</p>
+      
+      <h2>Inspecting deployed functions</h2>
+      ${codeBlock(`# List functions in a region
+gcloud functions list --regions=asia-south1
+
+# Inspect one — service account, env vars, trigger type, etc.
+gcloud functions describe currency-master --region=asia-south1
+
+# Get just the URL (useful in scripts)
+gcloud functions describe currency-master --region=asia-south1 \\
+  --format="value(serviceConfig.uri)"`)}
+      
+      <h2>Logs — your debugging lifeline</h2>
+      <p>This is the single most important command in this module. Memorize it.</p>
+      
+      ${codeBlock(`# Tail recent logs
+gcloud functions logs read currency-master \\
+  --region=asia-south1 --limit=20
+
+# Logs with specific severity
+gcloud functions logs read bq-null-monitor \\
+  --region=asia-south1 --min-log-level=ERROR
+
+# Tail in real time (use Cloud Logging instead for Gen 2)
+gcloud logging tail \\
+  'resource.type="cloud_run_revision"
+   AND resource.labels.service_name="currency-master"'`)}
+      
+      <div class="real-life">
+        <div class="real-life-label">🎯 Real Life</div>
+        <p>When your FX rates function failed with the <code>PermissionError</code> in gspread, the answer was in the logs. <code>gcloud functions logs read</code> would have surfaced the same traceback you saw in Cloud Console without leaving the terminal. Faster feedback loop.</p>
+      </div>
+      
+      <h2>Updating without re-uploading code</h2>
+      ${codeBlock(`# Update environment variables only
+gcloud functions deploy currency-master \\
+  --gen2 --region=asia-south1 \\
+  --update-env-vars=NEW_VAR=value
+
+# Remove an env var
+gcloud functions deploy currency-master \\
+  --gen2 --region=asia-south1 \\
+  --remove-env-vars=OLD_VAR
+
+# Change the runtime service account
+gcloud functions deploy currency-master \\
+  --gen2 --region=asia-south1 \\
+  --service-account=new-sa@PROJECT.iam.gserviceaccount.com`)}
+      
+      <h2>Invoking and testing</h2>
+      ${codeBlock(`# Call the function directly (works with --no-allow-unauthenticated)
+gcloud functions call currency-master --region=asia-south1
+
+# Or with curl using an identity token
+curl -H "Authorization: Bearer $(gcloud auth print-identity-token)" \\
+  https://asia-south1-fintech-469706.cloudfunctions.net/currency-master`)}
+      
+      <h2>Deleting</h2>
+      ${codeBlock(`gcloud functions delete currency-master --region=asia-south1`)}
+      
+      <div class="quick-check" data-quiz>
+        <div class="quick-check-q">Your function failed at deploy with "container failed to start". Where do you look first?</div>
+        <div class="quick-check-options">
+          <button class="quick-option" data-correct="false">Try a different region</button>
+          <button class="quick-option" data-correct="true">gcloud functions logs read &lt;name&gt; --region=...</button>
+          <button class="quick-option" data-correct="false">Increase the timeout</button>
+        </div>
+        <div class="quick-explain">99% of "container failed to start" errors are import-time exceptions in main.py — a missing env var, a typo, or a missing dependency. The traceback is in the logs.</div>
+      </div>
+      
+      <div class="exercise">
+        <div class="exercise-header"><span class="exercise-icon">▶</span> Try it yourself</div>
+        <ol>
+          <li>Run <code>gcloud functions list --regions=asia-south1</code> — see your deployed functions</li>
+          <li>Pick one, run <code>describe</code> on it — note the service account and entry point</li>
+          <li>Tail the logs for the last 10 lines</li>
+          <li>Invoke the function with <code>gcloud functions call</code></li>
+        </ol>
+      </div>
+    `
+  },
+  
+  {
+    id: 'scheduler',
+    title: 'Cloud Scheduler',
+    icon: '7',
+    time: '10 min',
+    content: `
+      <div class="module-header">
+        <div class="module-eyebrow">Module 7</div>
+        <h1 class="module-title">Cloud Scheduler</h1>
+        <div class="module-time">⏱️ 10 minutes</div>
+      </div>
+      
+      <p>Scheduler is cron-as-a-service. Your <code>fx-rates-daily</code> and <code>bq-null-monitor-daily</code> jobs run because Scheduler hits the function URLs every day.</p>
+      
+      <h2>Common operations</h2>
+      ${codeBlock(`# List scheduled jobs
+gcloud scheduler jobs list --location=asia-south1
+
+# Trigger immediately (don't wait for next scheduled run)
+gcloud scheduler jobs run fx-rates-daily --location=asia-south1
+
+# Pause a job (stops it from running on schedule)
+gcloud scheduler jobs pause fx-rates-daily --location=asia-south1
+
+# Resume
+gcloud scheduler jobs resume fx-rates-daily --location=asia-south1
+
+# Inspect
+gcloud scheduler jobs describe fx-rates-daily --location=asia-south1
+
+# Delete
+gcloud scheduler jobs delete fx-rates-daily --location=asia-south1`)}
+      
+      <h2>Updating the schedule</h2>
+      ${codeBlock(`# Change to 6 AM IST instead of 1 AM
+gcloud scheduler jobs update http fx-rates-daily \\
+  --location=asia-south1 \\
+  --schedule="0 6 * * *"
+
+# Change time zone
+gcloud scheduler jobs update http fx-rates-daily \\
+  --location=asia-south1 \\
+  --time-zone="UTC"`)}
+      
+      <h2>Cron syntax cheat sheet</h2>
+      ${codeBlock(`# minute hour day month day-of-week
+"0 1 * * *"      → every day at 01:00
+"*/15 * * * *"   → every 15 minutes
+"0 9 * * 1-5"    → 9 AM Mon-Fri
+"0 0 1 * *"      → 1st of every month at midnight
+"30 8 * * MON"   → Mondays at 08:30`)}
+      
+      <div class="real-life">
+        <div class="real-life-label">🎯 Real Life</div>
+        <p>Want to test your null-monitor without waiting until tomorrow morning? <code>gcloud scheduler jobs run bq-null-monitor-daily --location=asia-south1</code> fires it right now. Critical for debugging — pair it with <code>gcloud functions logs read</code> in a second terminal to watch the result.</p>
+      </div>
+      
+      <h2>Common gotcha</h2>
+      <div class="warning">
+        <strong>403 Permission Denied</strong> on scheduled runs usually means the scheduler's service account doesn't have <code>roles/run.invoker</code> on the function (Gen 2 = Cloud Run). Fix:
+      </div>
+      ${codeBlock(`gcloud functions add-invoker-policy-binding bq-null-monitor \\
+  --region=asia-south1 \\
+  --member="serviceAccount:bq-null-monitor@PROJECT.iam.gserviceaccount.com"`)}
+      
+      <div class="exercise">
+        <div class="exercise-header"><span class="exercise-icon">▶</span> Try it yourself</div>
+        <ol>
+          <li>List your scheduler jobs</li>
+          <li>Pick one and run <code>describe</code> on it — note the schedule and URI</li>
+          <li>Trigger it manually with <code>jobs run</code></li>
+          <li>Open the function logs in another window — watch the invocation appear</li>
+          <li>Pause and resume the job</li>
+        </ol>
+      </div>
+    `
+  },
+  
+  {
+    id: 'power',
+    title: 'Power-User Tricks',
+    icon: '8',
+    time: '15 min',
+    content: `
+      <div class="module-header">
+        <div class="module-eyebrow">Module 8</div>
+        <h1 class="module-title">Power-User Tricks</h1>
+        <div class="module-time">⏱️ 15 minutes</div>
+      </div>
+      
+      <p>These compound the more you use gcloud. They turn ad-hoc CLI work into actual automation.</p>
+      
+      <h2><code>--format</code> for parsing</h2>
+      <p>The default human-readable output is fine for browsing. For scripting, ask for specific fields:</p>
+      
+      ${codeBlock(`# Just project IDs, one per line
+gcloud projects list --format="value(projectId)"
+
+# Specific fields as a table
+gcloud functions list --regions=asia-south1 \\
+  --format="table(name, state, updateTime)"
+
+# Full JSON for piping to jq
+gcloud secrets list --format=json | jq '.[].name'
+
+# CSV
+gcloud iam service-accounts list --format=csv\\(email,displayName\\)`)}
+      
+      <h2><code>--filter</code> for narrowing</h2>
+      ${codeBlock(`# Only active functions
+gcloud functions list --regions=asia-south1 --filter="state:ACTIVE"
+
+# Service accounts whose email starts with bq-
+gcloud iam service-accounts list --filter="email:bq-*"
+
+# Recent error logs only
+gcloud logging read \\
+  'resource.type="cloud_run_revision" AND severity>=ERROR' \\
+  --limit=20
+
+# Combine filter and format
+gcloud functions list \\
+  --regions=asia-south1 \\
+  --filter="state:ACTIVE" \\
+  --format="value(name)"`)}
+      
+      <h2>Loop output into more commands</h2>
+      ${codeBlock(`# Delete all functions matching a pattern (DRY RUN first!)
+for fn in $(gcloud functions list \\
+  --regions=asia-south1 \\
+  --filter="name:test-*" \\
+  --format="value(name)"); do
+    echo "Would delete: $fn"
+    # gcloud functions delete $fn --region=asia-south1 --quiet
+done
+
+# Add a role to many service accounts
+for sa in sa1@... sa2@...; do
+  gcloud projects add-iam-policy-binding fintech-469706 \\
+    --member="serviceAccount:$sa" \\
+    --role="roles/bigquery.dataViewer"
+done`)}
+      
+      <h2>Multiple configurations (work vs personal)</h2>
+      ${codeBlock(`# Create a separate config
+gcloud config configurations create personal
+gcloud config configurations activate personal
+gcloud config set project my-personal-project
+gcloud auth login   # log in with a different account
+
+# Switch back
+gcloud config configurations activate default
+
+# List configs
+gcloud config configurations list`)}
+      
+      <div class="real-life">
+        <div class="real-life-label">🎯 Real Life</div>
+        <p>You probably have <code>fintech-469706</code> for the work project and might want to experiment with a personal project. Configurations let you swap context with one command instead of constantly typing <code>--project</code>.</p>
+      </div>
+      
+      <h2>Cloud Logging from the CLI</h2>
+      ${codeBlock(`# Read all errors from one function in the last hour
+gcloud logging read \\
+  'resource.type="cloud_function"
+   AND resource.labels.function_name="currency-master"
+   AND severity>=ERROR
+   AND timestamp>="2026-05-19T00:00:00Z"' \\
+  --limit=50 \\
+  --format="value(timestamp, textPayload)"
+
+# Tail logs in real time
+gcloud alpha logging tail \\
+  'resource.type="cloud_run_revision"'`)}
+      
+      <h2>One-line aliases worth setting</h2>
+      <p>Add these to your <code>.zshrc</code> or <code>.bashrc</code>:</p>
+      ${codeBlock(`alias gp='gcloud config set project'
+alias gpl='gcloud projects list'
+alias gcl='gcloud config list'
+alias gf='gcloud functions'
+alias gfll='gcloud functions logs read'
+alias gsj='gcloud scheduler jobs'`, 'bash')}
+      
+      <div class="exercise">
+        <div class="exercise-header"><span class="exercise-icon">▶</span> Try it yourself</div>
+        <ol>
+          <li>List your functions, but output only the names: <code>--format="value(name)"</code></li>
+          <li>Filter to only those starting with "currency": <code>--filter="name:currency*"</code></li>
+          <li>Run <code>gcloud config configurations list</code> — see your current config</li>
+          <li>Pipe a JSON output through <code>jq</code> (install if needed: <code>brew install jq</code>)</li>
+        </ol>
+      </div>
+    `
+  },
+  
+  {
+    id: 'capstone',
+    title: 'Capstone Project',
+    icon: '🏆',
+    time: '30 min',
+    content: `
+      <div class="module-header">
+        <div class="module-eyebrow">Capstone</div>
+        <h1 class="module-title">Build a Pipeline From Scratch</h1>
+        <div class="module-time">⏱️ 30 minutes</div>
+      </div>
+      
+      <p>This exercise covers everything from the previous modules. Build a tiny end-to-end pipeline using only the CLI — no GCP Console allowed.</p>
+      
+      <h2>The goal</h2>
+      <p>Create a service account that can read a CSV from Cloud Storage, load it into BigQuery, and query it. Then tear it all down. <strong>Time yourself</strong> — by the end of this tutorial you should be able to do this in under 15 minutes.</p>
+      
+      <h2>Step-by-step</h2>
+      
+      <h3>1. Create a bucket and upload a CSV</h3>
+      ${codeBlock(`# Replace with your unique bucket name
+export BUCKET="gs://capstone-$USER-$(date +%s)"
+export PROJECT=$(gcloud config get-value project)
+
+gcloud storage buckets create $BUCKET --location=asia-south1
+
+cat > sales.csv <<EOF
+date,region,amount
+2026-05-01,APAC,1500
+2026-05-02,EMEA,2300
+2026-05-03,US,4100
+EOF
+
+gcloud storage cp sales.csv $BUCKET/`)}
+      
+      <h3>2. Create a service account</h3>
+      ${codeBlock(`gcloud iam service-accounts create capstone-sa \\
+  --display-name="Capstone SA"
+
+export SA="capstone-sa@$PROJECT.iam.gserviceaccount.com"`)}
+      
+      <h3>3. Grant it the right roles</h3>
+      ${codeBlock(`# Read from the bucket
+gcloud storage buckets add-iam-policy-binding $BUCKET \\
+  --member="serviceAccount:$SA" \\
+  --role="roles/storage.objectViewer"
+
+# BigQuery permissions (project-level for simplicity)
+gcloud projects add-iam-policy-binding $PROJECT \\
+  --member="serviceAccount:$SA" \\
+  --role="roles/bigquery.dataEditor"
+
+gcloud projects add-iam-policy-binding $PROJECT \\
+  --member="serviceAccount:$SA" \\
+  --role="roles/bigquery.jobUser"`)}
+      
+      <h3>4. Create the BigQuery dataset and load the CSV</h3>
+      ${codeBlock(`bq mk --dataset --location=asia-south1 $PROJECT:capstone
+
+bq load --source_format=CSV --autodetect \\
+  $PROJECT:capstone.sales $BUCKET/sales.csv`)}
+      
+      <h3>5. Query the data</h3>
+      ${codeBlock(`bq query --use_legacy_sql=false \\
+  "SELECT region, SUM(amount) AS total
+   FROM \\\`$PROJECT.capstone.sales\\\`
+   GROUP BY region
+   ORDER BY total DESC"`)}
+      
+      <h3>6. Tear it all down</h3>
+      ${codeBlock(`# BigQuery dataset (with tables)
+bq rm -r -f $PROJECT:capstone
+
+# Bucket and contents
+gcloud storage rm --recursive $BUCKET
+
+# Service account
+gcloud iam service-accounts delete $SA --quiet`)}
+      
+      <div class="exercise">
+        <div class="exercise-header"><span class="exercise-icon">🏆</span> Bonus challenge</div>
+        <ul>
+          <li>Modify the script to load multiple CSVs at once using a wildcard: <code>$BUCKET/*.csv</code></li>
+          <li>Wrap the whole thing in a single shell script that takes a project ID as an argument</li>
+          <li>Add error handling with <code>set -euo pipefail</code> at the top of the script</li>
+        </ul>
+      </div>
+      
+      <h2>What you learned</h2>
+      <p>By completing this tutorial, you can now:</p>
+      <ul style="margin-left:24px;color:var(--text-dim);font-size:15px;">
+        <li>Switch between projects and regions instantly</li>
+        <li>Move data in and out of Cloud Storage</li>
+        <li>Create and manage service accounts with appropriate IAM roles</li>
+        <li>Store and retrieve secrets safely</li>
+        <li>Query BigQuery directly from the terminal</li>
+        <li>Deploy, debug, and update Cloud Functions</li>
+        <li>Schedule recurring jobs</li>
+        <li>Filter and format CLI output for scripting</li>
+      </ul>
+      
+      <h2>Where to go next</h2>
+      <p>Once these feel natural:</p>
+      <ul style="margin-left:24px;color:var(--text-dim);font-size:15px;">
+        <li><code>gcloud run</code> — direct Cloud Run deploys with more control than Functions</li>
+        <li><code>gcloud sql</code> — managed Postgres / MySQL</li>
+        <li><code>gcloud pubsub</code> — event-driven messaging (pairs beautifully with Functions)</li>
+        <li><strong>Terraform</strong> — once you're tired of typing the same commands, codify your infra</li>
+      </ul>
+      
+      <p style="margin-top:24px;">Official cheatsheet: <code>cloud.google.com/sdk/docs/cheatsheet</code></p>
+    `
+  }
+];
+
+function codeBlock(code, lang = 'bash') {
+  const id = 'code-' + Math.random().toString(36).slice(2);
+  const highlighted = highlightShell(code);
+  return `<div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">${lang}</span>
+      <button class="copy-btn" data-target="${id}">Copy</button>
+    </div>
+    <pre id="${id}">${highlighted}</pre>
+  </div>`;
+}
+
+function highlightShell(code) {
+  // Escape HTML first
+  let out = code
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  
+  // Comments (whole line starting with #, or # mid-line up to EOL)
+  out = out.replace(/(^|\s)(#[^\n]*)/gm, '$1<span class="tok-comment">$2</span>');
+  
+  // Strings
+  out = out.replace(/(&quot;|")([^"&]*?)(&quot;|")/g, '<span class="tok-str">"$2"</span>');
+  out = out.replace(/('[^']*')/g, '<span class="tok-str">$1</span>');
+  
+  // Flags: --xxx and -x
+  out = out.replace(/(\s)(--?[a-zA-Z][\w-]*)/g, '$1<span class="tok-flag">$2</span>');
+  
+  // Highlight gcloud/bq/echo etc. at line start
+  out = out.replace(/^(\s*)(gcloud|bq|echo|cat|curl|export|for|brew|exec)\b/gm, '$1<span class="tok-cmd">$2</span>');
+  out = out.replace(/(\|\s*)(gcloud|bq|jq)\b/g, '$1<span class="tok-cmd">$2</span>');
+  
+  return out;
+}
+
+// === State ===
+const state = {
+  current: 'welcome',
+  completed: new Set()
+};
+
+// === Render sidebar ===
+function renderSidebar() {
+  const nav = document.getElementById('navList');
+  nav.innerHTML = modules.map((m, i) => {
+    const completed = state.completed.has(m.id);
+    const active = state.current === m.id;
+    return `<li class="nav-item ${active ? 'active' : ''} ${completed ? 'completed' : ''}" data-id="${m.id}">
+      <span class="nav-icon"><span>${m.icon}</span></span>
+      <span>${m.title}</span>
+    </li>`;
+  }).join('');
+  
+  nav.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => setModule(item.dataset.id));
+  });
+  
+  // progress
+  const pct = (state.completed.size / modules.length) * 100;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `${state.completed.size} of ${modules.length} complete`;
+}
+
+// === Render module ===
+function renderModule() {
+  const m = modules.find(x => x.id === state.current);
+  const idx = modules.findIndex(x => x.id === state.current);
+  const main = document.getElementById('mainContent');
+  
+  const isComplete = state.completed.has(m.id);
+  
+  const footer = (m.id === 'welcome') ? `
+    <div class="module-footer">
+      <button class="nav-btn primary next" onclick="setModule('${modules[1].id}')">
+        Start Module 1: ${modules[1].title} →
+      </button>
+    </div>
+  ` : `
+    <div class="module-footer">
+      ${idx > 0 ? `<button class="nav-btn" onclick="setModule('${modules[idx-1].id}')">← ${modules[idx-1].title}</button>` : '<div></div>'}
+      <button class="complete-btn ${isComplete ? 'done' : ''}" onclick="toggleComplete('${m.id}')">
+        ${isComplete ? '✓ Completed' : 'Mark complete'}
+      </button>
+      ${idx < modules.length - 1 ? `<button class="nav-btn primary next" onclick="setModule('${modules[idx+1].id}')">${modules[idx+1].title} →</button>` : '<div></div>'}
+    </div>
+  `;
+  
+  main.innerHTML = `<div class="module active">${m.content}${footer}</div>`;
+  
+  attachHandlers();
+  window.scrollTo(0, 0);
+}
+
+function attachHandlers() {
+  // Copy buttons
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.dataset.target);
+      if (!target) return;
+      const text = target.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✓ Copied';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+          btn.classList.remove('copied');
+        }, 1800);
+      });
+    });
+  });
+  
+  // Tabs
+  document.querySelectorAll('.tabs').forEach(group => {
+    group.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const parent = group.parentElement;
+        group.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        parent.querySelectorAll('.tab-panel').forEach(p => {
+          p.classList.toggle('active', p.dataset.panel === tab.dataset.tab);
+        });
+      });
+    });
+  });
+  
+  // Quizzes
+  document.querySelectorAll('[data-quiz]').forEach(quiz => {
+    const explain = quiz.querySelector('.quick-explain');
+    quiz.querySelectorAll('.quick-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        const correct = opt.dataset.correct === 'true';
+        quiz.querySelectorAll('.quick-option').forEach(o => {
+          o.disabled = true;
+          if (o.dataset.correct === 'true') o.classList.add('correct');
+        });
+        if (!correct) opt.classList.add('wrong');
+        if (explain) explain.classList.add('show');
+      });
+    });
+  });
+}
+
+function setModule(id) {
+  state.current = id;
+  renderSidebar();
+  renderModule();
+}
+
+function toggleComplete(id) {
+  if (state.completed.has(id)) {
+    state.completed.delete(id);
+  } else {
+    state.completed.add(id);
+  }
+  renderSidebar();
+  renderModule();
+}
+
+// === Init ===
+renderSidebar();
+renderModule();
+</script>
+
+</body>
+</html>
+#anand_raj
